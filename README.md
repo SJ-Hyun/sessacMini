@@ -1,4 +1,4 @@
-# WEB 서버 구축
+# Web 서버 구축
 
 ## 1. http
 
@@ -69,17 +69,17 @@ sudo systemctl restart httpd
 ```
 해당 파일을 수정해 wordpress가 웹 서버에서 제대로 작동할 수 있도록 설정한다.
 
-### 3.5 SELinux 설정
+### 4. SELinux 설정
 ```
 sudo setsebool -P httpd_can_network_connect_db 1
 ```
 웹서버가 외부 DB와 연결될 수 있도록 SELinux의 보안 설정을 변경한다.
-## 4. mysql
-### 4.1 mysql 설치
+## 5. mysql
+### 5.1 mysql 설치
 ```
 sudo dnf install -y mysql
 ```
-### 4.2 mysql 접속
+### 5.2 mysql 접속
 ```
 mysql -h "DB 서버 ip주소" -u "mysql user 이름" -p
 ```
@@ -122,3 +122,59 @@ mysql>  grant all privileges on "database 이름".* to 'mysql user 이름'@'DB �
 sudo vi /etc/my.cnf
 ```
 하지만 아직 시도 안 해봄
+
+# LoadBalancer 서버 구축
+Web 서버 1. http 부분을 따라 실행한다.
+
+## 1. nginx
+### 1.1 nginx 설치
+```
+sudo dnf -y update
+sudo dnf -y install nginx
+nginx -v
+```
+### 1.2 nginx 시작 및 재부팅 시 자동 시작
+```
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+### 1.3 nginx conf 파일 수정 
+```bash
+sudo cp /etc/nginx/nginx.conf nginx.conf.backup
+sudo vi /etc/nginx/nginx.conf
+
+log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"'
+                      'upstream: $upstream_addr, request_time: $request_time';
+                        # 해당 부분으로 access_log에서 로드밸런싱을 확인할 수 있다.
+        upstream mini-web {
+          server web서버1_ip주소:80 weight=100 max_fails=3 fail_timeout=3s;
+          server web서버2_ip주소:80 weight=100 max_fails=3 fail_timeout=3s;
+        }
+
+        server {
+                location / {
+                  proxy_pass http://mini-web;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+                }
+        }
+
+
+sudo systemctl reload nginx
+sudo nginx -t
+```
+로드밸런서 설정을 해주기 위해 nginx.conf 파일을 수정한다. <br>
+수정하기 전 nginx.conf 파일을 백업해둔다. <br>
+nginx -t 명령어를 통해서 설정 파일의 구문 오류를 확인한다. <br>
+
+### 2. SELinux 설정
+```
+sudo setsebool -P httpd_can_network_connect 1
+```
+nginx가 외부 네트워크로 연결할 수 있게 허용한다.
+
