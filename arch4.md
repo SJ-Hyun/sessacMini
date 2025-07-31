@@ -11,7 +11,7 @@ sudo dnf install -y httpd
 sudo systemctl start httpd
 sudo systemctl enable httpd
 ```
-### 1.3 HTTP 서비스 방화벽 열기
+### 1.3 HTTP 방화벽 열기
 ```
 sudo firewall-cmd --add-service=http --permanent
 sudo firewall-cmd --reload
@@ -98,8 +98,6 @@ sudo vi /etc/my.cnf
 하지만 아직 시도 안 해봄
 
 # LoadBalancer 서버 구축
-Web 서버 1. http 부분을 따라 실행한다.
-
 ## 1. Nginx
 ### 1.1 Nginx 설치
 ```
@@ -151,6 +149,11 @@ nginx -t 명령어를 통해서 설정 파일의 구문 오류를 확인한다. 
 sudo setsebool -P httpd_can_network_connect 1
 ```
 nginx가 외부 네트워크로 연결할 수 있게 허용한다.
+### 3. HTTP 방화벽 열기
+```
+sudo firewall-cmd --add-service=http --permanent
+sudo firewall-cmd --reload
+```
 
 # NFS 공유 서버 구축
 
