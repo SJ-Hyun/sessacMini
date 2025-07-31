@@ -24,7 +24,7 @@ sudo dnf install -y php php-mysqlnd
 ```
 wordpress는 php로 실행되므로, 이를 위해 php와 mysql 데이터베이스와 연결을 위한 `php-mysqlnd` 패키지를 설치한다.
 
-### 3. Web 서버의 WordPress conf 파일 수정
+## 3. Web 서버의 WordPress conf 파일 수정
 ```bash
 sudo vi /etc/httpd/conf.d/wordpress.conf
 
@@ -40,7 +40,7 @@ sudo systemctl restart httpd
 ```
 해당 파일을 수정해 WordPress가 웹 서버에서 제대로 작동할 수 있도록 설정한다.
 
-### 4. SELinux 설정
+## 4. SELinux 설정
 ```
 sudo setsebool -P httpd_can_network_connect_db 1
 sudo setsebool -P httpd_use_nfs 1
@@ -146,7 +146,7 @@ sudo nginx -t
 수정하기 전 nginx.conf 파일을 백업해둔다. <br>
 nginx -t 명령어를 통해서 설정 파일의 구문 오류를 확인한다. <br>
 
-### 2. SELinux 설정
+## 2. SELinux 설정
 ```
 sudo setsebool -P httpd_can_network_connect 1
 ```
@@ -236,8 +236,8 @@ sudo mkdir -p /var/www/html/wordpress
 ```
 showmount -e NFS 서버 ip 주소
 ```
-
-### 2.4.1 수동 마운트
+### 2.4 NFS 마운트 수행
+#### 2.4.1 수동 마운트
 ```bash
 sudo mount -t nfs NFS 서버 ip 주소:/var/www/html/wordpress /var/www/html/wordpress
 
@@ -247,7 +247,7 @@ NFS 서버 ip 주소:/var/www/html/wordpress /var/www/html/wordpress nfs default
 sudo mount -a
 ```
 -t : 마운트할 파일 시스템 유형 명시
-### 2.4.2 자동 마운트
+#### 2.4.2 자동 마운트
 ```bash
 sudo dnf install -y autofs
 
