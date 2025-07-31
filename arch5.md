@@ -329,9 +329,10 @@ lsblk
 ### 2.6 마운트 설정
 ```
 sudo mkdir /mnt/mysql
-sudo mount /dev/sdb1 /mnt/mysql
+sudo mkfs.xfs /dev/sdb
+sudo mount /dev/sdb /mnt/mysql
 sudo vi /etc/fstab
-/dev/sdb1 /mnt/mysql xfs defaults,_netdev 0 0
+/dev/sdb /mnt/mysql xfs defaults,_netdev 0 0
 
 sudo mount -a
 lsblk
