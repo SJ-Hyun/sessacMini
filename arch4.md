@@ -174,7 +174,7 @@ sudo systemctl enable nfs-server
 sudo vi /etc/exports
 /srv/share      web서버 대역/24(rw,sync,no_root_squash)
 ```
-/etc/exports  : NSF Server가 NFS Client들에게 export하는 모든 경로들을 지정하는 파일
+/etc/exports  : NSF Server가 NFS Client들에게 export하는 모든 경로들을 지정하는 파일 <br>
 여러 web 서버를 연결해야 하기 때문에 특정 ip 주소가 아닌 대역으로 작성한다.
 
 #### 1.1.5 NFS 서버 공유 확인
@@ -182,10 +182,10 @@ sudo vi /etc/exports
 sudo exportfs -r
 sudo exportfs -v
 ```
-exportfs 명령어는 nfs서버를 다시 시작하지 않고도 공유목록을 수정할 수 있다.
-출처: https://wdy0705.tistory.com/40 [지극히 개인적인 IT 노하우:티스토리]
--r : Reexport  all  directories /etc/exports 파일 다시 읽기
--v : Be verbose. When exporting or unexporting, show what's going on. 현재 공유 목록 확인
+exportfs 명령어는 nfs서버를 다시 시작하지 않고도 공유목록을 수정할 수 있다. <br>
+출처: https://wdy0705.tistory.com/40 [지극히 개인적인 IT 노하우:티스토리] <br>
+-r : Reexport  all  directories /etc/exports 파일 다시 읽기 <br>
+-v : Be verbose. When exporting or unexporting, show what's going on. 현재 공유 목록 확인 <br>
 
 #### 1.1.6 NFS 서버 방화벽 열기
 ```
