@@ -22,7 +22,7 @@ sudo firewall-cmd --reload
 ```
 sudo dnf install -y php php-mysqlnd
 ```
-wordpress는 php로 실행되므로, 이를 위해 php와 mysql 데이터베이스와 연결을 위한 `php-mysqlnd` 패키지를 설치한다.
+WorPress는 PHP로 실행되므로, 이를 위해 PHP와 MySQL의 연결을 위한 php-mysqlnd 패키지를 설치한다.
 
 ## 3. Web 서버의 WordPress conf 파일 수정
 ```bash
@@ -47,17 +47,6 @@ sudo setsebool -P httpd_use_nfs 1
 ```
 웹서버가 외부 DB와 연결될 수 있도록 SELinux의 보안 설정을 변경한다.
 웹서버가 NFS 마운트 디렉터리에 접근을 허용할 수 있도록한다.
-
-## 5. MySQL
-### 5.1 MySQL 설치
-```
-sudo dnf install -y mysql
-```
-### 5.2 MySQL 접속
-```
-mysql -h "DB 서버 주소" -u "mysql user 이름" -p
-```
-외부 DB서버에서 생성된 데이터베이스에 접속한다.
 
 # DB 서버 구축 
 ## 1. MySQL 
@@ -345,7 +334,7 @@ lsblk
 시스템 시작 시 자동 마운트되지 않기 때문에 접속이 되지 않는 현상이 발생한다.<br>
 이를 해결하기 위해 _netdev 옵션을 적으면 네트워크 연결 후 마운트하게 된다.
 ### 2.7 db 저장 경로 변경
-mysql에 접속해 select @@datadir를 통해서 /var/lib/mysql/에 데이터가 저장된다는 것을 확인할 수 있다. <br>
+mysql에 접속해 select @@datadir를 검색하면 /var/lib/mysql/에 데이터가 저장된다는 것을 확인할 수 있다. <br>
 db 서버가 에러 나더라도 데이터 보존을 위해 <br>
 iSCSI로 새로 마운트한 /mnt/mysql로 mysql의 데이터가 저장되도록 경로를 변경한다.
 ```bash
@@ -377,6 +366,9 @@ sudo restorecon -R /mnt/mysql
 
 ls -Zd /mnt/mysql # 적용여부 확인
 system_u:object_r:mysqld_db_t:s0 /mnt/mysql
+
+sudo systemctl start mysqld
+sudo mysql -u root
 ```
 semanage fcontext -a -t mysqld_db_t "/mnt/mysql(/.*)?" <br>
 : /mnt/mysql과 그 하위 경로들에 대해 SELinux의 mysqld_db_t 타입(context)을 부여
