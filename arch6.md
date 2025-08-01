@@ -1,3 +1,15 @@
+# 구성
+// 인프라 구성도 이미지 넣기
+
+#### 서버 ip 주소 <br>
+>LB : 192.168.55.10 <br>
+Web-01 : 192.168.56.11 <br>
+Web-02 : 192.168.56.12 <br>
+NFS : 192.168.56.13 <br>
+DB-01 : 192.168.57.14 | 192.168.56.14 <br>
+DB-02 : 192.168.57.15 <br>
+iSCSI : 192.168.57.16
+
 # Web 서버 구축
 
 ## 1. HTTP
@@ -27,7 +39,6 @@ WorPress는 PHP로 실행되므로, 이를 위해 PHP와 MySQL의 연결을 위�
 ## 3. Web 서버의 WordPress conf 파일 수정
 ```bash
 sudo vi /etc/httpd/conf.d/wordpress.conf
-
 <VirtualHost *:80>
         ServerName example.com
         DocumentRoot /var/www/html/wordpress
@@ -35,7 +46,8 @@ sudo vi /etc/httpd/conf.d/wordpress.conf
                 AllowOverride All
         </Directory>
 </VirtualHost>
-
+```
+```
 sudo systemctl restart httpd
 ```
 해당 파일을 수정해 WordPress가 웹 서버에서 제대로 작동할 수 있도록 설정한다.
@@ -46,8 +58,8 @@ sudo setsebool -P httpd_can_network_connect_db 1
 sudo setsebool -P httpd_use_nfs 1
 ```
 웹서버가 외부 DB와 연결될 수 있도록 SELinux의 보안 설정을 변경한다.
-웹서버가 NFS 마운트 디렉터리에 접근을 허용할 수 있도록한다.
-
+웹서버가 NFS 마운트 디렉터리에 접근을 허용할 수 있도록한다. <br>
+<br>
 # DB 서버 구축 
 ## 1. MySQL 
 
@@ -66,27 +78,23 @@ sudo systemctl enable mysqld
 sudo firewall-cmd --add-service=mysql --permanent
 sudo firewall-cmd --reload
 ```
-### 1.4 MySQL 접속
+### 1.4 MySQL db 생성 및 user 생성, 권한 부여
 ```
 sudo mysql -u root
-```
-### 1.5 MySQL db 생성 및 user 생성, 권한 부여
-```
-mysql> create database "database 이름";
 
-mysql> create user 'mysql user 이름'@'DB 서버의 게이트웨이' identified by 'mysql user 비밀번호';
+mysql> create database database_이름;
 
-mysql>  grant all privileges on "database 이름".* to 'mysql user 이름'@'DB 서버의 게이트웨이';
+mysql> create user 'user 이름'@'Web 서버 대역' identified by 'user 비밀번호';
+
+mysql>  grant all privileges on database_이름.* to 'user 이름'@'Web 서버 대역';
 ```
-가상 머신이 동일한 서브넷에 있을 때는 직접 통신이 가능하지만, <br>
-서로 다른 서브넷에 있으면 게이트웨이를 통해 라우팅해야 한다.
-#### 1.5.1 (추가) bind-address로 접속 허용
-```
-sudo vi /etc/my.cnf
-```
-하지만 아직 시도 안 해봄
+<br>
 
 # LoadBalancer 서버 구축
+
+<!--  LoadBalancing를 위해 대표적으로 사용하는 프로그램은 HA Proxy와 Nginx 등등이 있다. <br>
+HA Proxy도 해보고싶은데 너무너무 지쳐요.....-->
+
 ## 1. Nginx
 ### 1.1 Nginx 설치
 ```
@@ -110,27 +118,22 @@ log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
                       'upstream: $upstream_addr, request_time: $request_time';
                         # 해당 부분으로 access_log에서 로드밸런싱을 확인할 수 있다.
         upstream mini-web {
-          server web서버1_주소:80 weight=100 max_fails=3 fail_timeout=3s;
-          server web서버2_주소:80 weight=100 max_fails=3 fail_timeout=3s;
+          server web서버1_주소:80;
+          server web서버2_주소:80;
         }
 
         server {
                 location / {
                   proxy_pass http://mini-web;
                   proxy_http_version 1.1;
-                  proxy_set_header Upgrade $http_upgrade;
-                  proxy_set_header Connection 'upgrade';
-                  proxy_set_header Host $host;
-                  proxy_cache_bypass $http_upgrade;
                 }
         }
-
-
+```
+```
 sudo systemctl reload nginx
 sudo nginx -t
 ```
 로드밸런서 설정을 해주기 위해 nginx.conf 파일을 수정한다. <br>
-수정하기 전 nginx.conf 파일을 백업해둔다. <br>
 nginx -t 명령어를 통해서 설정 파일의 구문 오류를 확인한다. <br>
 
 ## 2. SELinux 설정
@@ -138,11 +141,12 @@ nginx -t 명령어를 통해서 설정 파일의 구문 오류를 확인한다. 
 sudo setsebool -P httpd_can_network_connect 1
 ```
 nginx가 외부 네트워크로 연결할 수 있게 허용한다.
-### 3. HTTP 방화벽 열기
+## 3. HTTP 방화벽 열기
 ```
 sudo firewall-cmd --add-service=http --permanent
 sudo firewall-cmd --reload
 ```
+<br>
 
 # NFS 공유 서버 구축
 
@@ -164,7 +168,7 @@ sudo systemctl enable nfs-server
 #### 1.1.4 NFS 경로 파일 작성
 ```
 sudo vi /etc/exports
-/srv/share      web서버 대역/24(rw,sync,no_root_squash)
+/var/www/html/wordpress   192.168.56.0/24(rw,sync,no_root_squash)
 ```
 /etc/exports  : NSF Server가 NFS Client들에게 export하는 모든 경로들을 지정하는 파일 <br>
 여러 web 서버를 연결해야 하기 때문에 특정 ip 주소가 아닌 대역으로 작성한다.
@@ -175,9 +179,8 @@ sudo exportfs -r
 sudo exportfs -v
 ```
 exportfs 명령어는 nfs서버를 다시 시작하지 않고도 공유목록을 수정할 수 있다. <br>
-출처: https://wdy0705.tistory.com/40 [지극히 개인적인 IT 노하우:티스토리] <br>
--r : Reexport  all  directories /etc/exports 파일 다시 읽기 <br>
--v : Be verbose. When exporting or unexporting, show what's going on. 현재 공유 목록 확인 <br>
+-r : /etc/exports 파일 다시 읽기 <br>
+-v : 현재 공유 목록 확인 <br>
 
 #### 1.1.6 NFS 서버 방화벽 열기
 ```
@@ -196,7 +199,7 @@ curl -o wordpress.tar.gz https://wordpress.org/latest.tar.gz
 ```
 sudo tar xvf wordpress.tar.gz -C /var/www/html
 ```
--C 옵션을 통해서 web에 적용하기 위한 웹서버 디렉토리에 압축을 직접 푼다.
+-C 옵션을 통해서 web 서버에 공유할 디렉토리에 압축을 직접 푼다.
 #### 1.2.3 WordPress config 파일 수정
 ```bash
 sudo cp /var/www/html/wordpress/wp-config-sample.php /var/www/html/wordpress/wp-config.php
@@ -226,37 +229,46 @@ sudo mkdir -p /var/www/html/wordpress
 ```
 ### 2.3 NFS 마운트 위치 확인
 ```
-showmount -e NFS 서버 주소
+showmount -e NFS서버_ip주소
 ```
 ### 2.4 NFS 마운트 수행
 #### 2.4.1 수동 마운트
+```
+sudo mount -t nfs NFS서버_ip주소:/var/www/html/wordpress /var/www/html/wordpress
+```
 ```bash
-sudo mount -t nfs NFS 서버 주소:/var/www/html/wordpress /var/www/html/wordpress
-
 sudo vi /etc/fstab
-NFS 서버 주소:/var/www/html/wordpress /var/www/html/wordpress nfs defaults 0 0
-
+NFS서버_ip주소:/var/www/html/wordpress /var/www/html/wordpress nfs defaults 0 0
+```
+```
 sudo mount -a
 ```
 -t : 마운트할 파일 시스템 유형 명시
 #### 2.4.2 자동 마운트
 ```bash
 sudo dnf install -y autofs
-
+```
+```bash
 sudo vi /etc/auto.master.d/nfs.autofs
 /-      /etc/auto.direct
-
+```
+```bash
 sudo vi /etc/auto.direct
-/var/www/html/wordpress        -rw,sync NFS 서버 주소:/var/www/html/wordpress
-
+/var/www/html/wordpress        -rw,sync NFS서버_ip주소:/var/www/html/wordpress
+```
+```
 sudo systemctl start autofs
 ```
-### 2.5.1  NFS 마운트 확인
+### 2.5  NFS 마운트 확인
 ```
 mount | grep wordpress
 ```
+<br>
+
 # iSCSI 서버 구축
 ## 1. iSCSI 서버
+우선적으로 vbox 환경에서 20GB 디스크 2개를 추가한다. <br>
+2개를 추가하면 /dev/sdb, /dev/sdc가 추가된 것을 확인할 수 있다.
 ### 1.1 targetcli 설치
 ```
 sudo dnf install -y targetcli
@@ -265,14 +277,12 @@ targetcli : 리눅스에서 iSCSI 타겟을 구성하고 관리하는 데 사용
 
 ### 1.2 targetcli 서비스 시작 및 재부팅 시 자동 시작
 ```
-sudo systemctl enable --now target
+sudo systemctl start target
+sudo systemctl enable target
 ```
-### 1.3 targetcli 실행
+### 1.3 iSCSI 구성
 ```
 sudo targetcli
-```
-### 1.4 iSCSI 구성
-```
 /> /backstores/block create name=disk-p dev=/dev/sdb
 /> /backstores/block create name=disk-s dev=/dev/sdc
 /> /iscsi create wwn=iqn.2025-07.com.example:storage-p
@@ -284,16 +294,19 @@ sudo targetcli
 /> saveconfig
 /> exit
 ```
-각 명령에 대한 설명은... 나중에...
-### 1.5 방화벽 열기
+iSCSI 서버의 sdb는 primary 서버에, sdc는 secondary 서버에 연결하고 <br>
+구별을 위해 -p, -s로 구분하여 이름을 정해주었다.
+
+### 1.4 방화벽 열기
 ```
 sudo firewall-cmd --add-port=3260/tcp --permanent
 sudo firewall-cmd --reload
 ```
-3260/tcp = iSCSI(Target) 서버와 Initiator(클라이언트)가 통신하기 위해 사용하는 표준 포트
+iSCSI(Target) 서버와 클라이언트(Initiator)가 통신하기 위해 사용하는 표준 포트인 3260을 열어준다.
 
 ## 2. DB 서버
-### 2.1 iSCSI 패키지 설치
+2개의 DB 서버 모두에서 진행하되 위 iSCCI 구성에서 작성한 db별 이름으로 적용한다. <br>
+### 2.1 iSCSI initiator 패키지 설치
 ```
 sudo dnf install -y iscsi-initiator-utils
 ```
@@ -309,10 +322,10 @@ sudo systemctl enable iscsi
 ```
 ### 2.4 타겟 검색 및 로그인
 ```
-sudo iscsiadm -m discovery -t st -p iSCSI 서버 주소
-sudo iscsiadm -m node -T iqn.2025-07.com.example:storage1 -p iSCSI 서버 주소 -l
+sudo iscsiadm -m discovery -t st -p iSCSI서버_ip주소
+sudo iscsiadm -m node -T iqn.2025-07.com.example:storage-p -p iSCSI서버_ip주소 -l
 ```
--T 옵션은 iqn을 지정하는 것으로 위의 명령어를 실행했을 때 -t st를 통해 iqn이 출력된다.
+-t st를 통해 iqn이 출력되면 로그인 시 -T 옵션으로 출력된 iqn을 입력한다. 
 
 ### 2.5 연결 확인
 ```
@@ -324,25 +337,27 @@ lsblk
 sudo mkdir /mnt/mysql
 sudo mkfs.xfs /dev/sdb
 sudo mount /dev/sdb /mnt/mysql
+```
+```bash
 sudo vi /etc/fstab
 /dev/sdb /mnt/mysql xfs defaults,_netdev 0 0
-
+```
+```
 sudo mount -a
 lsblk
 ```
-마운트가 네트워크 연결보다 먼저 일어나기 때문에  <br> 
-시스템 시작 시 자동 마운트되지 않기 때문에 접속이 되지 않는 현상이 발생한다.<br>
+마운트가 네트워크 연결보다 먼저 일어나기 때문에 시스템 시작 시 마운트되지 않아 접속이 되지 않는 현상이 발생한다.<br>
 이를 해결하기 위해 _netdev 옵션을 적으면 네트워크 연결 후 마운트하게 된다.
 ### 2.7 db 저장 경로 변경
-mysql에 접속해 select @@datadir를 검색하면 /var/lib/mysql/에 데이터가 저장된다는 것을 확인할 수 있다. <br>
-db 서버가 에러 나더라도 데이터 보존을 위해 <br>
-iSCSI로 새로 마운트한 /mnt/mysql로 mysql의 데이터가 저장되도록 경로를 변경한다.
+mysql에 접속해 select @@datadir 명령어로 /var/lib/mysql/에 데이터가 저장된다는 것을 확인할 수 있다. <br>
+db 서버에 에러가 발생하더라도 데이터 손실 방지를 위해 iSCSI로 새로 마운트한 /mnt/mysql로 mysql의 데이터가 저장되도록 경로를 변경한다.
 ```bash
 sudo systemctl stop mysqld
 sudo chown -R mysql:mysql /mnt/mysql
 sudo chmod 750 /mnt/mysql
 sudo rsync -av /var/lib/mysql/ /mnt/mysql/
-
+```
+```bash
 sudo vi /etc/my.cnf
 [mysqld]
 datadir=/mnt/mysql
@@ -350,7 +365,8 @@ socket=/mnt/mysql/mysql.sock
 
 [client]
 socket=/mnt/mysql/mysql.sock
-
+```
+```bash
 sudo vi /etc/my.cnf.d/mysql-server.cnf
 [mysqld]
 datadir=/mnt/mysql
@@ -362,7 +378,10 @@ pid-file=/run/mysqld/mysqld.pid
 ### 2.8 SELinux 설정
 ```
 sudo semanage fcontext -a -t mysqld_db_t "/mnt/mysql(/.*)?"
+# /mnt/mysql과 그 하위 경로들에 대해 SELinux의 mysqld_db_t 타입(context)을 부여
+
 sudo restorecon -R /mnt/mysql
+# semanage로 등록한 정책을 하위 디렉토리와 파일까지 실제로 적용
 
 ls -Zd /mnt/mysql # 적용여부 확인
 system_u:object_r:mysqld_db_t:s0 /mnt/mysql
@@ -370,13 +389,10 @@ system_u:object_r:mysqld_db_t:s0 /mnt/mysql
 sudo systemctl start mysqld
 sudo mysql -u root
 ```
-semanage fcontext -a -t mysqld_db_t "/mnt/mysql(/.*)?" <br>
-: /mnt/mysql과 그 하위 경로들에 대해 SELinux의 mysqld_db_t 타입(context)을 부여
-restorecon -R /mnt/mysql  <br>
-: semanage로 등록한 정책을 하위 디렉토리와 파일까지 실제로 적용
+<br>
 
 # DB Replication
-## 1. Primary 서버
+## 1. Primary DB
 ### 1.1 Secondary 서버 유저 생성
 ```
 mysql> CREATE DATABASE wp DEFAULT CHARACTER SET utf8;
@@ -407,7 +423,7 @@ mysql> show master status;
 sudo mysqldump -u root -p wp > wp.sql
 scp -P 22 wp.sql vagrant@secondary서버주소:/home/vagrant/
 ```
-## 2. Secondary 서버
+## 2. Secondary DB
 ### 2.1
 ```
 mysql> CREATE DATABASE wp DEFAULT CHARACTER SET utf8;
