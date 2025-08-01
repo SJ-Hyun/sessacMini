@@ -1,5 +1,5 @@
 # 구성
-// 인프라 구성도 이미지 넣기
+![구성도](https://github.com/SJ-Hyun/sessacMini/blob/main/infra.png?raw=true)
 
 #### 서버 ip 주소 <br>
 >LB : 192.168.55.10 <br>
@@ -57,7 +57,7 @@ sudo systemctl restart httpd
 sudo setsebool -P httpd_can_network_connect_db 1
 sudo setsebool -P httpd_use_nfs 1
 ```
-웹서버가 외부 DB와 연결될 수 있도록 SELinux의 보안 설정을 변경한다.
+웹서버가 외부 DB와 연결될 수 있도록 SELinux의 보안 설정을 변경한다.<br>
 웹서버가 NFS 마운트 디렉터리에 접근을 허용할 수 있도록한다. <br>
 <br>
 # DB 서버 구축 
