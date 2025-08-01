@@ -10,6 +10,15 @@ DB-01 : 192.168.57.14 | 192.168.56.14 <br>
 DB-02 : 192.168.57.15 <br>
 iSCSI : 192.168.57.16
 
+# 목표
+1. 로드밸런서(LB) 서버를 통해 두 대의 Web 서버에 대한 HTTP 트래픽을 분산 (Load Balancing)
+
+2. NFS 서버를 활용하여, 두 Web 서버가 동일한 WordPress 디렉토리를 공유
+
+3. Primary–Secondary 구조의 DB Replication을 통해 데이터 이중화 구현
+
+4. DB 서버의 저장소를 iSCSI 서버에서 제공하는 디스크에 마운트하여, DB 데이터의 물리적 분리 및 안정성 확보
+<br><br>
 # Web 서버 구축
 
 ## 1. HTTP
