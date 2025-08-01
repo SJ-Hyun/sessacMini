@@ -244,12 +244,6 @@ showmount -e NFS서버_ip주소
 #### 2.4.1 수동 마운트
 ```
 sudo mount -t nfs NFS서버_ip주소:/var/www/html/wordpress /var/www/html/wordpress
-```
-```bash
-sudo vi /etc/fstab
-NFS서버_ip주소:/var/www/html/wordpress /var/www/html/wordpress nfs defaults 0 0
-```
-```
 sudo mount -a
 ```
 -t : 마운트할 파일 시스템 유형 명시
@@ -268,10 +262,22 @@ sudo vi /etc/auto.direct
 ```
 sudo systemctl start autofs
 ```
-### 2.5  NFS 마운트 확인
+### 2.5  재부팅 시 마운트 설정 및 마운트 확인
+```bash
+sudo vi /etc/fstab
+NFS서버_ip주소:/var/www/html/wordpress /var/www/html/wordpress nfs defaults,_netdev,nofail 0 0
+```
 ```
 mount | grep wordpress
 ```
+마운트가 네트워크 연결보다 먼저 일어나기 때문에 시스템 시작 시 마운트되지 않아 접속이 되지 않는 현상이 발생한다.<br>
+이를 해결하기 위해 _netdev 옵션을 적으면 네트워크 연결 후 마운트하게 된다.<br>
+<!--vagrant 파일에서 NFS,iSCSI 서버를 우선적으로 적으면 안 해도 될 것 같기도 하다.--> 
+
+defaults : 기본 마운트 옵션<br>
+_netdev : 네트워크 장치가 올라온 후에 마운트 시도<br>
+nofail : 부팅 시 마운트 실패해도 부팅 계속 진행<br>
+
 <br>
 
 # iSCSI 서버 구축
@@ -349,14 +355,14 @@ sudo mount /dev/sdb /mnt/mysql
 ```
 ```bash
 sudo vi /etc/fstab
-/dev/sdb /mnt/mysql xfs defaults,_netdev 0 0
+/dev/sdb /mnt/mysql xfs defaults,_netdev,nofail 0 0
 ```
 ```
 sudo mount -a
 lsblk
 ```
-마운트가 네트워크 연결보다 먼저 일어나기 때문에 시스템 시작 시 마운트되지 않아 접속이 되지 않는 현상이 발생한다.<br>
-이를 해결하기 위해 _netdev 옵션을 적으면 네트워크 연결 후 마운트하게 된다.
+
+
 ### 2.7 db 저장 경로 변경
 mysql에 접속해 select @@datadir 명령어로 /var/lib/mysql/에 데이터가 저장된다는 것을 확인할 수 있다. <br>
 db 서버에 에러가 발생하더라도 데이터 손실 방지를 위해 iSCSI로 새로 마운트한 /mnt/mysql로 mysql의 데이터가 저장되도록 경로를 변경한다.
