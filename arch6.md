@@ -76,7 +76,7 @@ sudo setsebool -P httpd_use_nfs 1
 ```
 sudo dnf install -y mysql mysql-server
 ```
- 서버에서는 DB 서버를 운영하기 위해 mysql-server 패키지를 추가적으로 설치한다. 
+DB 서버를 운영하기 위해 mysql-server 패키지를 추가적으로 설치한다. 
 ### 1.2 MySQL 시작 및 재부팅 시 자동 시작
 ```
 sudo systemctl start mysqld
@@ -118,7 +118,7 @@ sudo systemctl enable nginx
 ```
 ### 1.3 Nginx conf 파일 수정 
 ```bash
-sudo cp /etc/nginx/nginx.conf nginx.conf.backup
+sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup
 sudo vi /etc/nginx/nginx.conf
 
 log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
