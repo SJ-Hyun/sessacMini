@@ -449,8 +449,8 @@ mysql> START SLAVE;
 sudo systemctl restart mysqld.service
 show slave status\G;
 ```
-show slave status의 출력 결과 중 아래처럼 나오면 성공적으로 replication이 된 것이다.
-Slave_IO_Running: Yes
-Slave_SQL_Running: Yes
+show slave status의 출력 결과 중 아래처럼 나오면 성공적으로 replication이 된 것이다. <br>
+Slave_IO_Running: Yes <br>
+Slave_SQL_Running: Yes <br>
 
 
