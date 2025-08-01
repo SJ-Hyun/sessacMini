@@ -117,14 +117,14 @@ log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
                       '"$http_user_agent" "$http_x_forwarded_for"'
                       'upstream: $upstream_addr, request_time: $request_time';
                         # 해당 부분으로 access_log에서 로드밸런싱을 확인할 수 있다.
-        upstream mini-web {
+        upstream wp-web {
           server web서버1_주소:80;
           server web서버2_주소:80;
         }
 
         server {
                 location / {
-                  proxy_pass http://mini-web;
+                  proxy_pass http://wp-web;
                   proxy_http_version 1.1;
                 }
         }
@@ -392,24 +392,26 @@ sudo mysql -u root
 <br>
 
 # DB Replication
-## 1. Primary DB
+## 1. Primary 서버
 ### 1.1 Secondary 서버 유저 생성
 ```
-mysql> CREATE DATABASE wp DEFAULT CHARACTER SET utf8;
-mysql> CREATE USER 'repl'@'secondary 서버주소' IDENTIFIED BY '비밀번호';
-mysql> GRANT REPLICATION SLAVE ON *.* TO 'repl'@'secondary 서버주소';
+mysql> CREATE DATABASE db이름 DEFAULT CHARACTER SET utf8;
+mysql> CREATE USER 'user 이름'@'secondary서버_ip주소' IDENTIFIED BY 'user 비밀번호';
+mysql> GRANT REPLICATION SLAVE ON *.* TO 'user 이름'@'secondary서버_ip주소';
 ```
-### 1.2 mysql conf 파일 작성
+Primary DB와 Secondary DB가 연결이 되어야하기 때문에 Secondary 서버에서 접속할 수 있도록 유저를 추가한다.
+### 1.2 Primary 서버 MySQL conf 파일 작성
 ```
 sudo vi /etc/my.cnf
 [mysqld]
 log-bin=mysql-bin
 server-id=1
 bind-address=0.0.0.0
-
+```
+```
 sudo systemctl restart mysqld.service
 ```
-### 1.3 
+### 1.3 Primary DB 상태 확인
 ```
 mysql> show master status;
 +------------------+----------+--------------+------------------+-------------------+
@@ -418,17 +420,18 @@ mysql> show master status;
 | mysql-bin.000001 |      157 |              |                  |                   |
 +------------------+----------+--------------+------------------+-------------------+
 ```
-### 1.4
+Secondary DB에서 복제를 설정할 때 File과 Position에 대한 정보가 필요하다.
+### 1.4 Primary DB 백업 및 전송
 ```
-sudo mysqldump -u root -p wp > wp.sql
-scp -P 22 wp.sql vagrant@secondary서버주소:/home/vagrant/
+sudo mysqldump -u root -p db이름 > db이름.sql
+scp -P 22 db이름.sql vagrant@secondaryDB_ip주소:/home/vagrant/
 ```
 ## 2. Secondary DB
-### 2.1
+### 2.1 Secondary DB에 백업할 db 생성
 ```
-mysql> CREATE DATABASE wp DEFAULT CHARACTER SET utf8;
+mysql> CREATE DATABASE db이름 DEFAULT CHARACTER SET utf8;
 ```
-### 2.2 
+### 2.2 Secondary 서버 MySQL conf 설정
 ```
 sudo vi /etc/my.cnf
 [mysqld]
@@ -436,29 +439,30 @@ server-id=2
 read_only=1
 super_read_only=1
 ```
-### 2.3
+### 2.3 Primary 데이터 복원
 ```
-sudo mysql -u root -p wp < wp.sql
+sudo mysql -u root -p db이름.sql < db이름
 ```
-### 2.4
+### 2.4 복제 연결 설정
 ```
 mysql> CHANGE REPLICATION SOURCE TO
-    -> SOURCE_HOST='Primary서버주소',
-    -> SOURCE_USER='repl',
-    -> SOURCE_PASSWORD='비밀번호',
+    -> SOURCE_HOST='Primary서버_ip주소',
+    -> SOURCE_USER='user 이름',
+    -> SOURCE_PASSWORD='user 비밀번호',
     -> SOURCE_LOG_FILE='mysql-bin.000001',
     -> SOURCE_LOG_POS=157,
     -> SOURCE_PORT=3306,
     -> SOURCE_SSL=1;
 mysql> START SLAVE;
 ```
-### 2.5
+1.3에서 확인한 File과 Position 값을 SOURCE_LOG_FILE와 SOURCE_LOG_POS에 입력해준다.
+### 2.5 복제 시작 및 상태 확인
 ```
 sudo systemctl restart mysqld.service
 show slave status\G;
 ```
 show slave status의 출력 결과 중 아래처럼 나오면 성공적으로 replication이 된 것이다. <br>
-Slave_IO_Running: Yes <br>
+> Slave_IO_Running: Yes <br>
 Slave_SQL_Running: Yes <br>
 
 
